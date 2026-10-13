@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="RDS_pro - cantieri, sopralluoghi, rilievi e verbali PDF Romeo Safety.">
+    <title>RDS_pro - Romeo Safety Italia</title>
+    <link rel="stylesheet" href="style2.css?v=20261013-rds-2">
+</head>
+<body>
+    <div class="contenitore-principale">
+        <header class="hero">
+            <div class="hero-logo">
+                <img src="logo-romeo.png" alt="Romeo Safety Italia" onerror="this.onerror=null;this.src='https://fra1991xy-ui.github.io/francescoromeo/logo-romeo.png';">
+            </div>
+            <div>
+                <p class="eyebrow">Sopralluoghi CSE</p>
+                <h1>RDS_pro</h1>
+            </div>
+        </header>
+
+        <p id="storage-status" class="status-message" role="status" aria-live="polite">Caricamento archivio...</p>
+        <button type="button" class="btn-secondary" id="btn-retry-storage" hidden>Riprova apertura archivio</button>
+        <details class="panel ai-connection">
+            <summary>Connessione AI fotografica <span id="vision-connection-state">Non configurata</span></summary>
+            <form id="vision-connection-form">
+                <label class="gruppo-form">Indirizzo Worker RDS_pro<input type="url" id="vision-endpoint" placeholder="https://rds-pro-ai.nome.workers.dev" required></label>
+                <label class="gruppo-form">Codice di accesso RDS_pro<input type="password" id="vision-access-code" autocomplete="off" required></label>
+                <div class="form-actions"><button type="submit" class="btn-primary">Connetti</button><button type="button" class="btn-secondary" id="vision-disconnect">Disconnetti</button></div>
+                <p id="vision-connection-message" role="status" hidden></p>
+            </form>
+        </details>
+
+        <section class="active-site-card" aria-labelledby="active-site-title">
+            <div>
+                <p class="eyebrow">Cantiere attivo</p>
+                <h2 id="active-site-title"><span id="active-site-name">Nessun cantiere selezionato</span></h2>
+                <p id="active-site-meta">Crea o seleziona un cantiere prima di generare un sopralluogo.</p>
+            </div>
+            <div class="active-site-actions">
+                <select id="site-switcher" aria-label="Cambia cantiere attivo"></select>
+                <button type="button" class="btn-secondary" id="btn-manage-sites">Cantieri</button>
+                <button type="button" class="btn-primary" id="btn-new-inspection">Nuovo sopralluogo</button>
+            </div>
+        </section>
+
+        <section id="sites-panel" class="panel" hidden>
+            <div class="panel-title">
+                <div>
+                    <p class="eyebrow">Gestione</p>
+                    <h2>Cantieri</h2>
+                </div>
+                <button type="button" class="btn-secondary" id="btn-new-site">Nuovo cantiere</button>
+            </div>
+
+            <form id="site-form" class="form-card" hidden>
+                <input type="hidden" id="site-id">
+                <div class="riga-doppia">
+                    <label class="gruppo-form" for="site-name">
+                        Nome cantiere
+                        <input type="text" id="site-name" placeholder="Es. R3" required>
+                    </label>
+                    <label class="gruppo-form" for="site-code">
+                        Codice / sigla
+                        <input type="text" id="site-code" placeholder="Es. R3">
+                    </label>
+                </div>
+                <div class="riga-doppia">
+                    <label class="gruppo-form" for="site-client">
+                        Committente
+                        <input type="text" id="site-client" placeholder="Es. STMicroelectronics">
+                    </label>
+                    <label class="gruppo-form" for="site-address">
+                        Indirizzo / sito
+                        <input type="text" id="site-address" placeholder="Es. Agrate Brianza (MB)">
+                    </label>
+                </div>
+                <div class="riga-doppia">
+                    <label class="gruppo-form" for="site-contractor">
+                        Impresa affidataria predefinita
+                        <input type="text" id="site-contractor" placeholder="Ragione sociale affidataria">
+                    </label>
+                    <label class="gruppo-form" for="site-job-code">
+                        Codice commessa
+                        <input type="text" id="site-job-code" placeholder="Codice interno">
+                    </label>
+                </div>
+                <div class="riga-doppia">
+                    <label class="gruppo-form" for="site-cse">
+                        CSE del cantiere
+                        <input type="text" id="site-cse" placeholder="Nome e cognome del CSE">
+                    </label>
+                    <label class="gruppo-form" for="site-responsible">
+                        Responsabile dei Lavori
+                        <input type="text" id="site-responsible" placeholder="Nome e cognome del responsabile">
+                    </label>
+                </div>
+                <label class="gruppo-form" for="site-notes">
+                    Note cantiere
+                    <textarea id="site-notes" rows="3" placeholder="Dati utili per PDF, archivio o futura sincronizzazione."></textarea>
+                </label>
+                <div class="riga-doppia">
+                    <label class="gruppo-form" for="site-cover">
+                        Foto principale / planimetria cantiere
+                        <input type="file" id="site-cover" accept="image/*">
+                    </label>
+                    <label class="gruppo-form" for="site-client-logo">
+                        Logo cliente opzionale
+                        <input type="file" id="site-client-logo" accept="image/*">
+                    </label>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" id="btn-cancel-site">Annulla</button>
+                    <button type="submit" class="btn-primary">Salva cantiere</button>
+                </div>
+            </form>
+
+            <div id="sites-list" class="cards-list"></div>
+        </section>
+
+        <section id="inspection-panel" class="panel" hidden>
+            <div class="panel-title">
+                <div>
+                    <p class="eyebrow">Sopralluogo</p>
+                    <h2 id="inspection-title">Nuovo verbale</h2>
+                </div>
+                <button type="button" class="btn-secondary" id="btn-close-inspection">Chiudi</button>
+            </div>
+
+            <form id="inspection-form" class="form-card">
+                <div class="inspection-site-summary">
+                    <dl id="inspection-site-roles" class="site-roles"></dl>
+                    <button type="button" class="btn-secondary" id="btn-refresh-site-data" hidden>Aggiorna dati cantiere</button>
+                </div>
+                <div class="riga-doppia">
+                    <label class="gruppo-form" for="inspection-date">
+                        Data sopralluogo
+                        <input type="date" id="inspection-date" required>
+                    </label>
+                    <label class="gruppo-form" for="inspection-technician">
+                        Tecnico che effettua il sopralluogo
+                        <input type="text" id="inspection-technician" placeholder="Nome e cognome del tecnico" list="recent-technicians" required>
+                        <datalist id="recent-technicians"></datalist>
+                    </label>
+                </div>
+                <div class="riga-doppia">
+                    <label class="gruppo-form" for="inspection-affidataria">
+                        Spett.le impresa affidataria
+                        <input type="text" id="inspection-affidataria" placeholder="Ragione sociale affidataria">
+                    </label>
+                    <label class="gruppo-form" for="inspection-referente">
+                        c.a. referente affidataria
+                        <input type="text" id="inspection-referente" placeholder="Referente">
+                    </label>
+                </div>
+
+                <div class="findings-toolbar">
+                    <div>
+                        <h3>Osservazioni del sopralluogo</h3>
+                    </div>
+                    <button type="button" class="btn-primary" id="btn-add-finding">+ Aggiungi rilievo</button>
+                </div>
+                <div id="findings-list"></div>
+
+                <section id="unassigned-photos" class="inspection-photos" hidden>
+                    <h3>Foto precedenti da assegnare</h3>
+                    <p>Queste foto erano salvate senza un rilievo di appartenenza.</p>
+                    <div id="unassigned-photo-list" class="legacy-photos"></div>
+                </section>
+
+                <details class="finding-options">
+                    <summary>Note del sopralluogo</summary>
+                    <label class="gruppo-form" for="inspection-notes">
+                        Note
+                        <textarea id="inspection-notes" rows="3"></textarea>
+                    </label>
+                </details>
+                <p id="inspection-status" class="status-message" role="status" aria-live="polite" hidden></p>
+                <div class="form-actions sticky-actions">
+                    <button type="button" class="btn-secondary" id="btn-reset-inspection">Pulisci</button>
+                    <button type="button" class="btn-secondary" id="btn-save-draft">Salva bozza</button>
+                    <button type="button" class="btn-primary" id="btn-generate-inspection">Genera con AI</button>
+                    <button type="submit" class="btn-primary" id="btn-save-inspection" hidden>Salva verbale</button>
+                </div>
+            </form>
+        </section>
+
+        <section id="report-view-panel" class="panel" hidden aria-labelledby="report-view-title">
+            <div class="panel-title">
+                <h2 id="report-view-title">Sopralluogo</h2>
+                <div class="card-actions">
+                    <button type="button" class="btn-secondary" id="btn-edit-viewed-report">Modifica</button>
+                    <button type="button" class="btn-pdf" id="btn-pdf-viewed-report">PDF</button>
+                    <button type="button" class="btn-secondary" id="btn-close-report-view">Chiudi</button>
+                </div>
+            </div>
+            <div id="report-view-content"></div>
+        </section>
+
+        <section id="archive-panel" class="panel">
+            <div class="panel-title">
+                <div>
+                    <p class="eyebrow">Archivio</p>
+                    <h2>Verbali generati</h2>
+                </div>
+                <div class="archive-filters">
+                    <select id="archive-site-filter" aria-label="Filtra per cantiere"></select>
+                    <select id="archive-status-filter" aria-label="Filtra per stato">
+                        <option value="ATTIVO">Solo attivi</option>
+                        <option value="BOZZA">Bozze</option>
+                        <option value="COMPLETATO">Completati</option>
+                        <option value="ARCHIVIATO">Archiviati</option>
+                    </select>
+                </div>
+            </div>
+            <div id="archive-list" class="cards-list"></div>
+        </section>
+    </div>
+
+    <template id="finding-template">
+        <article class="finding-card" data-finding>
+            <div class="finding-head">
+                <h4 data-finding-title>Rilievo 01</h4>
+                <div class="mini-actions">
+                    <button type="button" class="btn-icon" data-action="up" title="Sposta su">↑</button>
+                    <button type="button" class="btn-icon" data-action="down" title="Sposta giu">↓</button>
+                    <button type="button" class="btn-icon" data-action="duplicate" title="Duplica">⧉</button>
+                    <button type="button" class="btn-icon danger" data-action="delete" title="Elimina">×</button>
+                </div>
+            </div>
+            <div class="finding-metadata">
+                <label class="gruppo-form">Impresa esecutrice
+                    <input type="hidden" data-field="executingCompany">
+                    <button type="button" class="btn-secondary value-picker" data-picker="executingCompany" aria-haspopup="dialog">Seleziona impresa</button>
+                </label>
+                <div class="riga-doppia">
+                    <label class="gruppo-form">Fabbricato
+                        <input type="hidden" data-field="building">
+                        <button type="button" class="btn-secondary value-picker" data-picker="building" aria-haspopup="dialog">Seleziona fabbricato</button>
+                    </label>
+                    <label class="gruppo-form">Piano
+                        <input type="hidden" data-field="floor">
+                        <button type="button" class="btn-secondary value-picker" data-picker="floor" aria-haspopup="dialog">Seleziona piano</button>
+                    </label>
+                </div>
+                <fieldset class="area-radio finding-suspension">
+                    <legend>Attività sospesa</legend>
+                    <label><input type="radio" data-suspended value="NO" checked> NO</label>
+                    <label><input type="radio" data-suspended value="SI"> SÌ</label>
+                </fieldset>
+            </div>
+            <label class="gruppo-form">
+                Cosa hai trovato?
+                <textarea rows="3" data-field="observation" placeholder="Es. Operai sul ponteggio senza parapetto sul lato esterno." required></textarea>
+            </label>
+            <div class="ai-result" data-ai-result hidden>
+                <label class="gruppo-form">
+                    Descrizione attività
+                    <textarea rows="3" data-field="activityDescription"></textarea>
+                </label>
+                <label class="gruppo-form">
+                    Misure di sicurezza attuate
+                    <textarea rows="3" data-field="safetyMeasures"></textarea>
+                </label>
+                <label class="gruppo-form">
+                    Misure correttive
+                    <textarea rows="3" data-field="correctiveMeasures"></textarea>
+                </label>
+            </div>
+            <p class="finding-stale" data-ai-stale hidden>Appunto modificato: rigenera le tre sezioni oppure aggiorna i testi prima di completare.</p>
+            <details class="finding-options">
+                <summary>Disposizione operativa</summary>
+                <label class="gruppo-form">
+                    Tempistica
+                    <select data-field="timing">
+                        <option value="Messa in sicurezza immediata">Messa in sicurezza immediata</option>
+                        <option value="Attivita sospesa fino ad adempimento">Attivita sospesa fino ad adempimento</option>
+                        <option value="Messa in sicurezza entro 2 giorni">Messa in sicurezza entro 2 giorni</option>
+                        <option value="Messa in sicurezza entro 3 giorni">Messa in sicurezza entro 3 giorni</option>
+                        <option value="Messa in sicurezza giornata">Messa in sicurezza giornata</option>
+                    </select>
+                </label>
+                <div class="riga-doppia">
+                    <label class="gruppo-form">
+                        Impresa interessata
+                        <input type="text" data-field="company">
+                    </label>
+                    <label class="gruppo-form">
+                        Priorità
+                        <select data-field="priority">
+                            <option value="Ordinaria">Ordinaria</option>
+                            <option value="Alta">Alta</option>
+                            <option value="Urgente">Urgente</option>
+                        </select>
+                    </label>
+                </div>
+            </details>
+            <section class="finding-photos">
+                <h4>Fotografie del rilievo</h4>
+                <div class="legacy-photos" data-finding-photos></div>
+                <label class="btn-secondary photo-picker" data-photo-picker>+ Aggiungi fotografie
+                    <input class="visually-hidden" type="file" data-photo-upload accept="image/*" multiple>
+                </label>
+            </section>
+            <section class="vision-section" data-vision>
+                <button type="button" class="btn-primary" data-vision-open>Analizza foto con AI</button>
+                <div data-vision-body hidden>
+                    <label class="gruppo-form">Cosa vuoi verificare?<textarea data-vision-question rows="2" maxlength="2000" placeholder="Domanda facoltativa"></textarea></label>
+                    <fieldset class="vision-photo-selection"><legend>Foto da analizzare <span data-vision-photo-count></span></legend><div data-vision-photo-options></div></fieldset>
+                    <label class="vision-consent"><input type="checkbox" data-vision-consent> Autorizzo l'invio delle foto selezionate al servizio AI</label>
+                    <div class="form-actions"><button type="button" class="btn-primary" data-vision-analyze>Analizza</button><button type="button" class="btn-secondary" data-vision-cancel hidden>Annulla analisi</button></div>
+                    <p class="status-message" data-vision-status role="status" hidden></p>
+                    <p class="finding-stale" data-vision-stale hidden>Foto o contesto modificati: analisi da aggiornare. I testi precedenti sono conservati.</p>
+                    <div data-vision-assessment hidden></div>
+                    <button type="button" class="btn-secondary" data-vision-create hidden>Crea proposta report</button>
+                    <div data-vision-proposal hidden>
+                        <h4>Proposta da revisionare</h4>
+                        <label class="gruppo-form">Descrizione attività<textarea data-proposal="descrizione" rows="3"></textarea></label>
+                        <label class="gruppo-form">Misure di sicurezza attuate<textarea data-proposal="misure" rows="3"></textarea></label>
+                        <label class="gruppo-form">Misure correttive<textarea data-proposal="correttive" rows="3"></textarea></label>
+                        <label class="vision-consent"><input type="checkbox" data-vision-approval> Ho revisionato la proposta e confermo i contenuti</label>
+                        <button type="button" class="btn-primary" data-vision-accept>Conferma nel rilievo</button>
+                    </div>
+                </div>
+            </section>
+        </article>
+    </template>
+
+    <dialog id="value-dialog" class="mobile-dialog" aria-labelledby="value-dialog-title">
+        <div class="dialog-heading"><h2 id="value-dialog-title"></h2><button type="button" class="btn-icon" data-close-dialog aria-label="Chiudi">×</button></div>
+        <div id="value-options" class="value-options"></div>
+        <button type="button" class="btn-secondary" id="btn-add-value">+ Aggiungi nuovo</button>
+        <form id="new-value-form" hidden>
+            <label class="gruppo-form" for="new-value">Nuovo valore<input id="new-value" type="text" maxlength="180" required></label>
+            <p id="value-error" role="alert" hidden></p>
+            <button type="submit" class="btn-primary">Aggiungi e seleziona</button>
+        </form>
+        <button type="button" class="btn-secondary" data-close-dialog>Annulla</button>
+    </dialog>
+    <dialog id="delete-dialog" class="mobile-dialog" aria-labelledby="delete-dialog-title">
+        <h2 id="delete-dialog-title">Elimina report</h2>
+        <p id="delete-dialog-message"></p>
+        <p>La cancellazione è definitiva.</p>
+        <form method="dialog" class="delete-actions">
+            <button class="btn-secondary" value="cancel" autofocus>Annulla</button>
+            <button class="btn-danger" value="delete">Elimina</button>
+        </form>
+    </dialog>
+
+    <script src="jspdf.umd.min.js"></script>
+    <script src="assets.js"></script>
+    <script src="config.js?v=20261013-rds-2"></script>
+    <script src="storage.js?v=20261013-rds-1"></script>
+    <script src="media.js?v=20261013-rds-2"></script>
+    <script src="report-model.js?v=20261013-findings"></script>
+    <script src="finding-ui.js?v=20261013-rds-2"></script>
+    <script src="vision-api.js?v=20261013-rds-2"></script>
+    <script src="vision-ui.js?v=20261013-rds-2"></script>
+    <script src="script.js?v=20261013-rds-2"></script>
+</body>
+</html>
