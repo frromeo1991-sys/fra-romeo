@@ -1093,7 +1093,13 @@ async function addFindingPdfPage(pdf, finding, report, header, footer, greenBar)
         ["Misure di sicurezza attuate:", finding.safetyMeasures || "-"],
         ["Misure correttive:", finding.correctiveMeasures || "-"]
     ];
-    let y = 74;
+    // Leave room for the last-page signature (251 mm) and the unchanged footer.
+    const contentBottom = 244;
+    const sectionHeadingHeight = 5;
+    pdf.setFont(undefined, "normal");
+    pdf.setFontSize(8);
+    const lineHeight = pdf.getLineHeight() / pdf.internal.scaleFactor;
+    let y;
 
     function startFindingPage(continuation = false) {
         pdf.addPage();
@@ -1108,43 +1114,55 @@ async function addFindingPdfPage(pdf, finding, report, header, footer, greenBar)
         fitPdfText(pdf, `Piano: ${finding.floor || "-"}`, 106, 59, 85, 6, 8);
         fitPdfText(pdf, `Attivita sospesa: ${finding.activitySuspended === "SI" ? "SI" : "NO"}`, 18, 65, 174, 5, 8);
         pdf.setFontSize(8);
-        y = 76;
+        y = 74;
+        footer();
+        pdf.setFontSize(8);
     }
 
     function continueFindingPage() {
-        pdf.rect(15, 50, 180, Math.max(55, y - 48));
-        footer();
+        pdf.rect(15, 50, 180, Math.min(contentBottom, y + 1) - 50);
         startFindingPage(true);
     }
 
     startFindingPage();
-    // Reserve the lower half for the original dispositions, photos and signature.
     for (const [label, text] of sections) {
         pdf.setFont(undefined, "normal");
         pdf.setFontSize(8);
         const lines = pdf.splitTextToSize(text, 170);
-        if (y + 12 > 120) continueFindingPage();
+        // Keep the heading with one actual text line, not with the whole section.
+        if (y + sectionHeadingHeight + lineHeight > contentBottom - 2) continueFindingPage();
         pdf.setFont(undefined, "bold");
         pdf.text(label, 18, y);
-        y += 5;
+        y += sectionHeadingHeight;
         pdf.setFont(undefined, "normal");
         for (const line of lines) {
-            if (y > 120) {
+            if (y + lineHeight > contentBottom - 2) {
                 continueFindingPage();
                 pdf.setFont(undefined, "bold");
                 pdf.text(`${label} (segue)`, 18, y);
-                y += 5;
+                y += sectionHeadingHeight;
                 pdf.setFont(undefined, "normal");
             }
             pdf.text(line, 18, y);
-            y += 3.3;
+            y += lineHeight;
         }
-        pdf.line(18, y + 1, 188, y + 1);
-        y += 6;
+        pdf.line(18, y + 0.5, 188, y + 0.5);
+        y += 4;
     }
-    pdf.rect(15, 50, 180, Math.max(55, y - 48));
+    pdf.rect(15, 50, 180, Math.min(contentBottom, y + 1) - 50);
 
-    const yDisp = Math.max(110, y + 5);
+    function fitBlock(height) {
+        if (y + height > contentBottom) {
+            startFindingPage(true);
+            pdf.rect(15, 50, 180, 21);
+        }
+        const top = y;
+        y += height + 3;
+        return top;
+    }
+
+    y += 3;
+    const yDisp = fitBlock(20);
     pdf.rect(15, yDisp, 180, 20);
     pdf.setFontSize(6.5);
     pdf.setFont(undefined, "bold");
@@ -1162,11 +1180,14 @@ async function addFindingPdfPage(pdf, finding, report, header, footer, greenBar)
         pdf.text(`${check} ${timing}`, positions[index][0], yDisp + positions[index][1]);
     });
 
-    if (finding.showPhotoFrame) {
-        await drawPhotos(pdf, finding.pdfPhotoGroups[0] || [], yDisp + 27);
+    const photoGroups = finding.showPhotoFrame
+        ? (finding.pdfPhotoGroups.length ? finding.pdfPhotoGroups : [[]])
+        : [];
+    for (const photos of photoGroups) {
+        await drawPhotos(pdf, photos, fitBlock(66));
     }
 
-    const yTab = 230;
+    const yTab = fitBlock(18);
     pdf.setFontSize(8);
     pdf.text(`sospese: ${finding.activitySuspended === "SI" ? "[ ] NON APPLICABILE - [X] APPLICABILE" : "[X] NON APPLICABILE - [ ] APPLICABILE"}`, 15, yTab);
     greenBar(15, yTab + 4, 180, 7);
@@ -1189,23 +1210,10 @@ async function addFindingPdfPage(pdf, finding, report, header, footer, greenBar)
     pdf.text(finding.correctiveMeasures ? "Vedi prescrizioni" : "-", 155, yTab + 16, { maxWidth: 37 });
 
     pdf.setFontSize(8);
-    footer();
-
-    for (const photos of finding.pdfPhotoGroups.slice(1)) {
-        pdf.addPage();
-        header();
-        greenBar(15, 42, 180, 8);
-        pdf.setFont(undefined, "bold");
-        pdf.setFontSize(8);
-        pdf.text(`Foto rilievo ${String(finding.number).padStart(2, "0")} - segue`, 18, 47);
-        pdf.setFont(undefined, "normal");
-        await drawPhotos(pdf, photos, 60);
-        footer();
-    }
 }
 
 async function drawPhotos(pdf, photos, yStart) {
-    const yFoto = Math.min(yStart, 155);
+    const yFoto = yStart;
     pdf.rect(15, yFoto, 180, 66);
     pdf.setFillColor(146, 208, 80);
     pdf.rect(15, yFoto, 10, 66, "FD");
