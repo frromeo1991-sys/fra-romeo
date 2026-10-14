@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="RDS_pro - cantieri, sopralluoghi, rilievi e verbali PDF Romeo Safety.">
     <title>RDS_pro - Romeo Safety Italia</title>
-    <link rel="stylesheet" href="style2.css?v=20261013-rds-2">
+    <link rel="stylesheet" href="style2.css?v=20261014-rds-connection-1">
 </head>
 <body>
     <div class="contenitore-principale">
@@ -21,14 +21,20 @@
 
         <p id="storage-status" class="status-message" role="status" aria-live="polite">Caricamento archivio...</p>
         <button type="button" class="btn-secondary" id="btn-retry-storage" hidden>Riprova apertura archivio</button>
-        <details class="panel ai-connection">
-            <summary>Connessione AI fotografica <span id="vision-connection-state">Non configurata</span></summary>
+        <details class="panel ai-connection" open>
+            <summary>
+                <span class="vision-connection-label">AI fotografica</span>
+                <span id="vision-connection-state" role="status" aria-live="polite">AI non configurata</span>
+                <button type="button" id="vision-connection-edit" class="btn-secondary" aria-controls="vision-connection-form" aria-expanded="true">Configura</button>
+            </summary>
             <form id="vision-connection-form">
                 <label class="gruppo-form">Indirizzo Worker RDS_pro<input type="url" id="vision-endpoint" placeholder="https://rds-pro-ai.nome.workers.dev" required></label>
                 <label class="gruppo-form">Codice di accesso RDS_pro<input type="password" id="vision-access-code" autocomplete="off" required></label>
-                <div class="form-actions"><button type="submit" class="btn-primary">Connetti</button><button type="button" class="btn-secondary" id="vision-disconnect">Disconnetti</button></div>
+                <div class="form-actions"><button type="submit" class="btn-primary">Connetti</button><button type="button" class="btn-secondary" id="vision-connection-close">Chiudi</button></div>
                 <p id="vision-connection-message" role="status" hidden></p>
+                <button type="button" class="vision-forget" id="vision-disconnect" hidden>Dimentica configurazione AI</button>
             </form>
+            <button type="button" class="btn-secondary" id="vision-connection-retry" hidden>Riprova connessione</button>
         </details>
 
         <section class="active-site-card" aria-labelledby="active-site-title">
@@ -354,8 +360,9 @@
     <script src="media.js?v=20261013-rds-2"></script>
     <script src="report-model.js?v=20261013-findings"></script>
     <script src="finding-ui.js?v=20261013-rds-2"></script>
-    <script src="vision-api.js?v=20261013-rds-2"></script>
+    <script src="vision-api.js?v=20261014-rds-connection-1"></script>
     <script src="vision-ui.js?v=20261013-rds-2"></script>
     <script src="script.js?v=20261013-rds-2"></script>
 </body>
 </html>
+
